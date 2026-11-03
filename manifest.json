@@ -1,0 +1,45 @@
+{
+  "manifest_version": "0.4",
+  "name": "aether",
+  "display_name": "MetaDefender Aether",
+  "version": "1.0.0",
+  "description": "Scan files, hunt threats and pivot campaigns with MetaDefender Aether.",
+  "long_description": "**Scan files, hunt threats and pivot campaigns with MetaDefender Aether.**\n\n\u2022 **Scan** files and URLs in the Aether sandbox (always private)  \n\u2022 **Look up** the reputation of hashes, IPs, domains and URLs, up to 100 at once  \n\u2022 **Search** reports by malware family, file type, behavior, MITRE technique, YARA rule or file name  \n\u2022 **Pivot** to related samples, similar files and IOC prevalence  \n\u2022 **Extract** IOCs, malware configs, emulated behavior, YARA hits, family attribution, MITRE ATT&CK techniques and page screenshots\n\n**Try:**  \n\u2022 \"Is this IP malicious? 203.0.113.5\"  \n\u2022 \"Scan ~/Downloads/invoice.pdf and tell me if it is malicious.\"  \n\u2022 \"Find AsyncRAT samples from this month and list their C2 servers.\"  \n\u2022 \"Map that sample to MITRE ATT&CK tactics and techniques.\"\n\n_Sample files can never be downloaded._",
+  "author": {
+    "name": "OPSWAT"
+  },
+  "homepage": "https://www.filescan.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/filescanio/aether-mcp"
+  },
+  "license": "MIT",
+  "icon": "icon.png",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/aether_mcp/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--no-dev", "--directory", "${__dirname}", "aether-mcp"],
+      "env": {
+        "AETHER_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "Aether API key",
+      "description": "Your MetaDefender Aether (Filescan.io) API key.",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  },
+  "keywords": ["malware", "sandbox", "threat-intelligence", "ioc", "filescan"]
+}

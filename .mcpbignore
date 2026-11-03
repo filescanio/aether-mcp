@@ -1,0 +1,13 @@
+# Only the server source, pyproject.toml, README, LICENSE, manifest and icon go into the .mcpb bundle.
+.venv/
+tests/
+.git/
+.env
+.env.*
+dist/
+uv.lock
+.ruff_cache/
+.pytest_cache/
+**/__pycache__/
+*.pyc
+*.log
