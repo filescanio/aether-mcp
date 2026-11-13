@@ -4,17 +4,17 @@
 
 Minimal MCP server for the Aether / Filescan.io API: a thin translation layer between the LLM and the
 API. Each tool calls Aether and returns only what the LLM needs.
-Scans are always **private**.
+Scans are **public** by default.
 
 ## Tools
 
 ### Scan (`tools/scan.py`)
 
 
-| Tool        | What it does                          | API                   |
-| ----------- | ------------------------------------- | --------------------- |
-| `scan_file` | Upload a local file as a private scan | `POST /api/scan/file` |
-| `scan_url`  | Submit a URL as a private scan        | `POST /api/scan/url`  |
+| Tool        | What it does                | API                   |
+| ----------- | --------------------------- | --------------------- |
+| `scan_file` | Upload a local file to scan | `POST /api/scan/file` |
+| `scan_url`  | Submit a URL to scan        | `POST /api/scan/url`  |
 
 **Try:**
 - "Scan ~/Downloads/invoice.pdf in Aether and tell me if it is malicious and why."
@@ -120,3 +120,14 @@ startup_timeout_sec = 60
   }
 }
 ```
+
+## Settings
+
+Set these as environment variables in your MCP client config. In Claude Desktop, the API key and private scans
+are in the extension's settings.
+
+| Setting                | Default                   | What it does                                                                              |
+| ---------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| `AETHER_API_KEY`       | (required)                | Your Aether (Filescan.io) API key                                                         |
+| `AETHER_BASE_URL`      | `https://www.filescan.io` | Aether instance to call; must be `https://`                                               |
+| `AETHER_PRIVATE_SCANS` | `false`                   | `true` keeps scans private; otherwise scanned files and reports are public on filescan.io |

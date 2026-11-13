@@ -53,9 +53,13 @@ def _describe(what: str, when: str) -> str:
 
 # ---------- scan ----------
 
-# Tool: privately scan a local file.
+# How scans are shared, so the LLM can tell the user before uploading
+SCAN_VISIBILITY = ("a private scan" if client.private_scans
+                   else "a public scan (other filescan.io users can see its report and get the scanned file)")
+
+# Tool: scan a local file.
 SCAN_FILE_TITLE = "Scan a file in the Aether sandbox"
-SCAN_FILE_WHAT = "Upload a local file (max 100 MB) to the Aether sandbox as a private scan. Returns its flow_id."
+SCAN_FILE_WHAT = f"Upload a local file (max 100 MB) to the Aether sandbox as {SCAN_VISIBILITY}. Returns its flow_id."
 SCAN_FILE_WHEN = "ONLY when the user explicitly asks to scan a file in their own message."
 @mcp.tool(title=SCAN_FILE_TITLE, description=_describe(SCAN_FILE_WHAT, SCAN_FILE_WHEN))
 async def scan_file(
@@ -64,9 +68,9 @@ async def scan_file(
     return await scan.scan_file(client, path)
 
 
-# Tool: privately scan a URL.
+# Tool: scan a URL.
 SCAN_URL_TITLE = "Scan a URL in the Aether sandbox"
-SCAN_URL_WHAT = "Submit a URL to the Aether sandbox as a private scan. Returns its flow_id."
+SCAN_URL_WHAT = f"Submit a URL to the Aether sandbox as {SCAN_VISIBILITY}. Returns its flow_id."
 SCAN_URL_WHEN = "ONLY when the user explicitly asks to scan a URL in their own message."
 @mcp.tool(title=SCAN_URL_TITLE, description=_describe(SCAN_URL_WHAT, SCAN_URL_WHEN))
 async def scan_url(

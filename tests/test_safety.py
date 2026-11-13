@@ -61,21 +61,58 @@ async def test_http_base_url_refused(fake_aether, monkeypatch):
     assert client.sent == []
 
 
-# Scans are always private.
-async def test_scan_url_is_private(fake_aether):
+# Scans are public unless AETHER_PRIVATE_SCANS is set.
+async def test_scan_url_is_public_by_default(fake_aether, monkeypatch):
+    monkeypatch.delenv("AETHER_PRIVATE_SCANS", raising=False)
     client = fake_aether({"flow_id": "f" * 24, "priority": 1})
     assert await scan.scan_url(client, "https://example.com") == {"flow_id": "f" * 24}
-    assert b"is_private=true" in client.sent[0].read()
-    assert b"is_private_report=true" in client.sent[0].read()
+    assert b"is_private=false" in client.sent[0].read()
+    assert b"is_private_report=false" in client.sent[0].read()
 
 
-async def test_scan_file_is_private(fake_aether, tmp_path):
+async def test_scan_file_is_public_by_default(fake_aether, monkeypatch, tmp_path):
+    monkeypatch.delenv("AETHER_PRIVATE_SCANS", raising=False)
     file = tmp_path / "sample.txt"
     file.write_text("hello")
     client = fake_aether({"flow_id": "f" * 24})
     assert await scan.scan_file(client, str(file)) == {"flow_id": "f" * 24}
+    assert b'name="is_private"\r\n\r\nfalse' in client.sent[0].read()
+    assert b'name="is_private_report"\r\n\r\nfalse' in client.sent[0].read()
+
+
+@pytest.mark.parametrize("value", ["true", "1", "yes", "TRUE"])
+async def test_scan_url_private_setting(fake_aether, monkeypatch, value):
+    monkeypatch.setenv("AETHER_PRIVATE_SCANS", value)
+    client = fake_aether({"flow_id": "f" * 24})
+    await scan.scan_url(client, "https://example.com")
+    assert b"is_private=true" in client.sent[0].read()
+    assert b"is_private_report=true" in client.sent[0].read()
+
+
+async def test_scan_file_private_setting(fake_aether, monkeypatch, tmp_path):
+    monkeypatch.setenv("AETHER_PRIVATE_SCANS", "true")
+    file = tmp_path / "sample.txt"
+    file.write_text("hello")
+    client = fake_aether({"flow_id": "f" * 24})
+    await scan.scan_file(client, str(file))
     assert b'name="is_private"\r\n\r\ntrue' in client.sent[0].read()
     assert b'name="is_private_report"\r\n\r\ntrue' in client.sent[0].read()
+
+
+# Off values (Claude Desktop sends "false" for an unchecked box) keep scans public.
+@pytest.mark.parametrize("value", ["false", "0", "", "no"])
+async def test_scan_private_setting_off(fake_aether, monkeypatch, value):
+    monkeypatch.setenv("AETHER_PRIVATE_SCANS", value)
+    client = fake_aether({"flow_id": "f" * 24})
+    await scan.scan_url(client, "https://example.com")
+    assert b"is_private=false" in client.sent[0].read()
+
+
+# The scan tool descriptions tell the LLM whether scans are public or private.
+def test_scan_descriptions_match_setting():
+    expected = "private scan" if server.client.private_scans else "public scan"
+    assert expected in server.SCAN_FILE_WHAT
+    assert expected in server.SCAN_URL_WHAT
 
 
 async def test_scan_file_too_large(fake_aether, tmp_path):

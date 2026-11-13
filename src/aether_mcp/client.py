@@ -29,6 +29,8 @@ class AetherClient:
     # Set up the HTTP session; the API key is read per request so the server starts without it.
     def __init__(self) -> None:
         self.base_url = os.environ.get("AETHER_BASE_URL", "https://www.filescan.io").rstrip("/")
+        # Scans are public unless the user turns on AETHER_PRIVATE_SCANS
+        self.private_scans = os.environ.get("AETHER_PRIVATE_SCANS", "").strip().lower() in {"true", "1", "yes"}
         self._http = httpx.AsyncClient(base_url=self.base_url)
 
     # Send one request to an allowlisted endpoint and return its JSON (or text); failures become tool errors.
