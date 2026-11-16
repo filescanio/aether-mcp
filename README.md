@@ -4,17 +4,17 @@
 
 Minimal MCP server for the Aether / Filescan.io API: a thin translation layer between the LLM and the
 API. Each tool calls Aether and returns only what the LLM needs.
-Scans are always **private**.
+Scans are **public** by default.
 
 ## Tools
 
 ### Scan (`tools/scan.py`)
 
 
-| Tool        | What it does                          | API                   |
-| ----------- | ------------------------------------- | --------------------- |
-| `scan_file` | Upload a local file as a private scan | `POST /api/scan/file` |
-| `scan_url`  | Submit a URL as a private scan        | `POST /api/scan/url`  |
+| Tool        | What it does                | API                   |
+| ----------- | --------------------------- | --------------------- |
+| `scan_file` | Upload a local file to scan | `POST /api/scan/file` |
+| `scan_url`  | Submit a URL to scan        | `POST /api/scan/url`  |
 
 **Try:**
 - "Scan ~/Downloads/invoice.pdf in Aether and tell me if it is malicious and why."
@@ -79,7 +79,20 @@ Scans are always **private**.
 - "Which family is that sample, and what is the evidence?"
 
 
-`client.py` allowlists the endpoints above; nothing can download sample files.
+### Download (`tools/download.py`)
+
+Off by default: listed only when the user sets `AETHER_ALLOW_DOWNLOADS=true`, and it saves only to `AETHER_DOWNLOAD_DIR`
+(see [Settings](#settings)).
+
+| Tool            | What it does                                                                 | API                       |
+| --------------- | ---------------------------------------------------------------------------- | ------------------------- |
+| `download_file` | Save a sample as `<sha256>.zip` (password `infected`); returns only its path | `GET /api/files/{sha256}` |
+
+**Try:**
+- "Download that sample so I can open it in my analysis VM."
+
+
+`client.py` allowlists the endpoints above.
 
 ## Install
 
@@ -120,3 +133,18 @@ startup_timeout_sec = 60
   }
 }
 ```
+
+## Settings
+
+Set these as environment variables in your MCP client config. In Claude Desktop, all but `AETHER_BASE_URL` are in the
+extension's settings.
+
+| Setting                  | Default                   | What it does                                                                                   |
+| ------------------------ | ------------------------- | ---------------------------------------------------------------------------------------------- |
+| `AETHER_API_KEY`         | (required)                | Your Aether (Filescan.io) API key                                                              |
+| `AETHER_BASE_URL`        | `https://www.filescan.io` | Aether instance to call; must be `https://`                                                    |
+| `AETHER_PRIVATE_SCANS`   | `false`                   | `true` keeps scans private; otherwise scanned files and reports are public on filescan.io      |
+| `AETHER_ALLOW_DOWNLOADS` | `false`                   | `true` adds `download_file`; it also needs `AETHER_DOWNLOAD_DIR`                               |
+| `AETHER_DOWNLOAD_DIR`    | (none)                    | Existing absolute folder where `download_file` saves samples; downloads are refused without it |
+
+To run the live tests (`tests/test_live.py`): `AETHER_API_KEY=<your key> uv run pytest`.

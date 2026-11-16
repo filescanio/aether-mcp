@@ -4,7 +4,7 @@
   "display_name": "MetaDefender Aether",
   "version": "1.0.0",
   "description": "Scan files, hunt threats and pivot campaigns with MetaDefender Aether.",
-  "long_description": "**Scan files, hunt threats and pivot campaigns with MetaDefender Aether.**\n\n\u2022 **Scan** files and URLs in the Aether sandbox (always private)  \n\u2022 **Look up** the reputation of hashes, IPs, domains and URLs, up to 100 at once  \n\u2022 **Search** reports by malware family, file type, behavior, MITRE technique, YARA rule or file name  \n\u2022 **Pivot** to related samples, similar files and IOC prevalence  \n\u2022 **Extract** IOCs, malware configs, emulated behavior, YARA hits, family attribution, MITRE ATT&CK techniques and page screenshots\n\n**Try:**  \n\u2022 \"Is this IP malicious? 203.0.113.5\"  \n\u2022 \"Scan ~/Downloads/invoice.pdf and tell me if it is malicious.\"  \n\u2022 \"Find AsyncRAT samples from this month and list their C2 servers.\"  \n\u2022 \"Map that sample to MITRE ATT&CK tactics and techniques.\"\n\n_Sample files can never be downloaded._",
+  "long_description": "**Scan files, hunt threats and pivot campaigns with MetaDefender Aether.**\n\n\u2022 **Scan** files and URLs in the Aether sandbox (public by default, private in the settings)  \n\u2022 **Look up** the reputation of hashes, IPs, domains and URLs, up to 100 at once  \n\u2022 **Search** reports by malware family, file type, behavior, MITRE technique, YARA rule or file name  \n\u2022 **Pivot** to related samples, similar files and IOC prevalence  \n\u2022 **Extract** IOCs, malware configs, emulated behavior, YARA hits, family attribution, MITRE ATT&CK techniques and page screenshots\n\n**Try:**  \n\u2022 \"Is this IP malicious? 203.0.113.5\"  \n\u2022 \"Scan ~/Downloads/invoice.pdf and tell me if it is malicious.\"  \n\u2022 \"Find AsyncRAT samples from this month and list their C2 servers.\"  \n\u2022 \"Map that sample to MITRE ATT&CK tactics and techniques.\"\n\n_Sample downloads are off unless you turn them on in the settings._",
   "author": {
     "name": "OPSWAT"
   },
@@ -22,7 +22,10 @@
       "command": "uv",
       "args": ["run", "--no-dev", "--directory", "${__dirname}", "aether-mcp"],
       "env": {
-        "AETHER_API_KEY": "${user_config.api_key}"
+        "AETHER_API_KEY": "${user_config.api_key}",
+        "AETHER_PRIVATE_SCANS": "${user_config.private_scans}",
+        "AETHER_ALLOW_DOWNLOADS": "${user_config.allow_downloads}",
+        "AETHER_DOWNLOAD_DIR": "${user_config.download_dir}"
       }
     }
   },
@@ -33,6 +36,26 @@
       "description": "Your MetaDefender Aether (Filescan.io) API key.",
       "sensitive": true,
       "required": true
+    },
+    "private_scans": {
+      "type": "boolean",
+      "title": "Private scans",
+      "description": "Keep your file and URL scans private. Off: scanned files and their reports are public on filescan.io.",
+      "default": false,
+      "required": false
+    },
+    "allow_downloads": {
+      "type": "boolean",
+      "title": "Allow sample downloads",
+      "description": "Let Claude save sample files (password-protected ZIPs, password: infected) to the download folder.",
+      "default": false,
+      "required": false
+    },
+    "download_dir": {
+      "type": "directory",
+      "title": "Download folder",
+      "description": "Folder where downloaded samples are saved. Downloads are refused until it is set.",
+      "required": false
     }
   },
   "compatibility": {

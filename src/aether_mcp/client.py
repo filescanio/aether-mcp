@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 from mcp.server.mcpserver.exceptions import ToolError
@@ -17,6 +17,7 @@ ALLOWED_PATHS = [
     r"/api/system/(config|mitre|signal-groups|yara)",
     r"/api/similarity-search/similarity",
     r"/api/threatintel/get-prevalence",
+    r"/api/files/[0-9a-f]{64}",  # sample download: only reachable when the user turns on AETHER_ALLOW_DOWNLOADS
 ]
 # Fields about Aether users (e.g. uploader email) that must never reach the LLM
 USER_FIELDS = {"uploader", "userId"}
@@ -29,11 +30,18 @@ class AetherClient:
     # Set up the HTTP session; the API key is read per request so the server starts without it.
     def __init__(self) -> None:
         self.base_url = os.environ.get("AETHER_BASE_URL", "https://www.filescan.io").rstrip("/")
+        # Scans are public unless the user turns on AETHER_PRIVATE_SCANS
+        self.private_scans = _flag("AETHER_PRIVATE_SCANS")
+        # Sample downloads are off unless the user turns on AETHER_ALLOW_DOWNLOADS and sets AETHER_DOWNLOAD_DIR
+        self.allow_downloads = _flag("AETHER_ALLOW_DOWNLOADS")
+        self.download_dir = os.environ.get("AETHER_DOWNLOAD_DIR", "").strip()
         self._http = httpx.AsyncClient(base_url=self.base_url)
 
     # Send one request to an allowlisted endpoint and return its JSON (or text); failures become tool errors.
+    # With `sink`, the body is passed to it chunk by chunk instead (never held in memory) and None is returned.
     async def request(self, method: str, path: str, params: dict[str, Any] | None = None, data: dict[str, Any] | None = None,
-                      files: dict[str, Any] | None = None, json: Any = None, timeout: float = 60) -> Any:
+                      files: dict[str, Any] | None = None, json: Any = None, timeout: float = 60,
+                      sink: Callable[[bytes], None] | None = None) -> Any:
         api_key = os.environ.get("AETHER_API_KEY")
         if not api_key:
             raise ToolError("AETHER_API_KEY is not set.")
@@ -44,8 +52,13 @@ class AetherClient:
         params = {k: v for k, v in (params or {}).items() if v is not None}
         hint = SEARCH_HINT if path == "/api/reports/advanced-search" else ""  # how to recover from a slow search
         try:
-            resp = await self._http.request(method, path, params=params, data=data, files=files, json=json,
-                                            headers={"X-Api-Key": api_key}, timeout=timeout)
+            async with self._http.stream(method, path, params=params, data=data, files=files, json=json,
+                                         headers={"X-Api-Key": api_key}, timeout=timeout) as resp:
+                if resp.status_code < 400 and sink:
+                    async for chunk in resp.aiter_bytes():
+                        sink(chunk)
+                    return None
+                await resp.aread()
         except httpx.TimeoutException:
             raise ToolError("Aether timed out." + hint) from None
         except httpx.HTTPError as exc:
@@ -54,6 +67,11 @@ class AetherClient:
             raise ToolError(f"Aether returned HTTP {resp.status_code}: {resp.text[:300].replace(api_key, '***')}"
                             f"{hint if resp.status_code >= 500 else ''}")
         return _drop_user_fields(resp.json()) if "json" in resp.headers.get("content-type", "") else resp.text
+
+
+# An on/off setting from the environment; only true, 1 or yes turn it on.
+def _flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"true", "1", "yes"}
 
 
 # Remove USER_FIELDS at any depth of a JSON response.

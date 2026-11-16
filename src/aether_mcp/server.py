@@ -11,7 +11,7 @@ from mcp_types import Icon, ToolAnnotations
 from pydantic import BaseModel, Field
 
 from .client import AetherClient
-from .tools import lookup, report, scan, search
+from .tools import download, lookup, report, scan, search
 
 ICON = "data:image/svg+xml;base64," + base64.b64encode(Path(__file__).with_name("icon.svg").read_bytes()).decode()
 mcp = MCPServer(
@@ -53,9 +53,13 @@ def _describe(what: str, when: str) -> str:
 
 # ---------- scan ----------
 
-# Tool: privately scan a local file.
+# How scans are shared, so the LLM can tell the user before uploading
+SCAN_VISIBILITY = ("a private scan" if client.private_scans
+                   else "a public scan (other filescan.io users can see its report and get the scanned file)")
+
+# Tool: scan a local file.
 SCAN_FILE_TITLE = "Scan a file in the Aether sandbox"
-SCAN_FILE_WHAT = "Upload a local file (max 100 MB) to the Aether sandbox as a private scan. Returns its flow_id."
+SCAN_FILE_WHAT = f"Upload a local file (max 100 MB) to the Aether sandbox as {SCAN_VISIBILITY}. Returns its flow_id."
 SCAN_FILE_WHEN = "ONLY when the user explicitly asks to scan a file in their own message."
 @mcp.tool(title=SCAN_FILE_TITLE, description=_describe(SCAN_FILE_WHAT, SCAN_FILE_WHEN))
 async def scan_file(
@@ -64,9 +68,9 @@ async def scan_file(
     return await scan.scan_file(client, path)
 
 
-# Tool: privately scan a URL.
+# Tool: scan a URL.
 SCAN_URL_TITLE = "Scan a URL in the Aether sandbox"
-SCAN_URL_WHAT = "Submit a URL to the Aether sandbox as a private scan. Returns its flow_id."
+SCAN_URL_WHAT = f"Submit a URL to the Aether sandbox as {SCAN_VISIBILITY}. Returns its flow_id."
 SCAN_URL_WHEN = "ONLY when the user explicitly asks to scan a URL in their own message."
 @mcp.tool(title=SCAN_URL_TITLE, description=_describe(SCAN_URL_WHAT, SCAN_URL_WHEN))
 async def scan_url(
@@ -404,6 +408,21 @@ async def get_url_render(
     sha256: Annotated[str, Field(pattern=SHA256, description="SHA-256 of the report's file (for a URL scan: of the page).")],
 ) -> Any:
     return await report.get_url_render(client, report_id, sha256)
+
+
+# ---------- download ----------
+
+# Tool: save a sample to disk; only listed when the user turned on AETHER_ALLOW_DOWNLOADS.
+DOWNLOAD_FILE_TITLE = "Download a sample file"
+DOWNLOAD_FILE_WHAT = ("Save a file from Aether, by SHA-256, as a password-protected ZIP in the user's download folder. "
+                      "Returns its path and password, never its content. The file may be live malware.")
+DOWNLOAD_FILE_WHEN = "ONLY when the user explicitly asks to download a file in their own message."
+if client.allow_downloads:
+    @mcp.tool(title=DOWNLOAD_FILE_TITLE, description=_describe(DOWNLOAD_FILE_WHAT, DOWNLOAD_FILE_WHEN))
+    async def download_file(
+        sha256: Annotated[str, Field(pattern=SHA256, description="SHA-256 of the file to download.")],
+    ) -> Any:
+        return await download.download_file(client, sha256)
 
 
 # Entry point: start the MCP server over stdio.
