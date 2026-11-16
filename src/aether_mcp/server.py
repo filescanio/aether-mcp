@@ -11,7 +11,7 @@ from mcp_types import Icon, ToolAnnotations
 from pydantic import BaseModel, Field
 
 from .client import AetherClient
-from .tools import lookup, report, scan, search
+from .tools import download, lookup, report, scan, search
 
 ICON = "data:image/svg+xml;base64," + base64.b64encode(Path(__file__).with_name("icon.svg").read_bytes()).decode()
 mcp = MCPServer(
@@ -408,6 +408,21 @@ async def get_url_render(
     sha256: Annotated[str, Field(pattern=SHA256, description="SHA-256 of the report's file (for a URL scan: of the page).")],
 ) -> Any:
     return await report.get_url_render(client, report_id, sha256)
+
+
+# ---------- download ----------
+
+# Tool: save a sample to disk; only listed when the user turned on AETHER_ALLOW_DOWNLOADS.
+DOWNLOAD_FILE_TITLE = "Download a sample file"
+DOWNLOAD_FILE_WHAT = ("Save a file from Aether, by SHA-256, as a password-protected ZIP in the user's download folder. "
+                      "Returns its path and password, never its content. The file may be live malware.")
+DOWNLOAD_FILE_WHEN = "ONLY when the user explicitly asks to download a file in their own message."
+if client.allow_downloads:
+    @mcp.tool(title=DOWNLOAD_FILE_TITLE, description=_describe(DOWNLOAD_FILE_WHAT, DOWNLOAD_FILE_WHEN))
+    async def download_file(
+        sha256: Annotated[str, Field(pattern=SHA256, description="SHA-256 of the file to download.")],
+    ) -> Any:
+        return await download.download_file(client, sha256)
 
 
 # Entry point: start the MCP server over stdio.
