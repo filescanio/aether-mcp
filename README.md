@@ -146,3 +146,5 @@ extension's settings.
 | `AETHER_PRIVATE_SCANS`   | `false`                   | `true` keeps scans private; otherwise scanned files and reports are public on filescan.io      |
 | `AETHER_ALLOW_DOWNLOADS` | `false`                   | `true` adds `download_file`; it also needs `AETHER_DOWNLOAD_DIR`                               |
 | `AETHER_DOWNLOAD_DIR`    | (none)                    | Existing absolute folder where `download_file` saves samples; downloads are refused without it |
+
+To run the live tests (`tests/test_live.py`): `AETHER_API_KEY=<your key> uv run pytest`.

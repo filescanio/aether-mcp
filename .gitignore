@@ -13,7 +13,6 @@ dist/
 # Secrets: never commit an API key
 .env
 .env.*
-!.env.example
 
 # Local / editor
 .DS_Store
